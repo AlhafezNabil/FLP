@@ -1,0 +1,78 @@
+A parser in Haskell is a function that takes an input stream of characters (usually represented as a string) and returns a parsed value, along with the remaining unparsed input. Parsers are commonly used in programming languages and other systems to extract structured data from unstructured input.
+
+Here's an example of a simple parser in Haskell that parses an integer from a string:
+
+    import Data.Char (isDigit)
+
+    type Parser a = String -> Maybe (a, String)
+
+    parseInt :: Parser Int
+    parseInt = \input -> case span isDigit input of
+    ("", _)  -> Nothing
+    (digits, rest) -> Just (read digits, rest)
+
+calling parseResult = parseInt "123hello"
+
+Explination:
+
+    In this example, we define a type alias Parser that represents a function that takes a string input and returns a Maybe tuple containing the parsed value and the remaining unparsed input. The parseInt function is a parser that parses an integer from the input string.
+
+    The span function is used to extract a prefix of the input string consisting of digits. The isDigit function is used as the predicate to determine if a character is a digit or not. The read function is used to convert the digit string into an integer.
+
+    The case expression is used to handle two cases: if the digit string is empty (i.e., there are no digits in the input), the parser returns Nothing, indicating that the input could not be parsed. Otherwise, the parsed integer and the remaining unparsed input are returned as a Just tuple.
+
+
+
+
+Parser a - un tip de date in Haskell pentru a putea implementa parsere pentru obiecte de timpul a 
+
+
+newType Parser a = Parser { apply :: String -> [(a, string)]}
+
+> :t apply 
+apply:: Parser a -> String -> [(a, String)]
+
+
+am facut cateva exemple simple si frumoase pentru Parse cChar 
+
+staisfy :: (Char -> Bool ) -> Parser Char 
+
+-- acel parse construit pentru a accepta drept token valid orice caracter 
+anChar :: Parser CharanCHar = satisfgy (\_ -> True)
+
+digit :: Parser CHar 
+digit = satisfy isDigit
+
+> apply digit "123"
+[("1", "23")]
+
+> apply digit "23"
+[("23", "3")]
+
+> apply digit "3"
+[("3", "")]
+
+> apply digit ""
+[]
+
+"123" -> [("1", "23")] -> [("23", "3")] -> [("3", "")] -> []
+            ^                ^                ^
+            token valid     token valie     token valid
+
+> apply digit "1ab"
+[("1", "ab")]
+
+> apply digit "ab"
+[]
+
+ce face parserul?
+- consuma sirul de intare - determinist
+    - il parcuge recursiv pana la elemenut l de baza - ""
+        in cazul in care toate caracterele pot fi parsate 
+    - ori il parcurge pana lap rimul caracter care nu poate fil parsat 
+- caracterul pur functional al parserului consta in procesarea sirului de intrare
+"123" -> "23" -> "3" -> "" -> stop
+"lab" -> "ab" -> stop
+
+- se produce un efect lateral, si anume identificarea tokenului valid
+
