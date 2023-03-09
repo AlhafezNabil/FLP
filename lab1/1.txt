@@ -1,0 +1,39 @@
+
+1-
+Exp ::=
+x
+| '\' x '->' Exp
+| Exp Exp
+| 'let' x '=' Exp 'in' Exp
+| 'letrec' f '=' Exp 'in' Exp
+
+2- 
+Atentie: operatorii vor fi folosit i tot ca funct ii dar fără a îi mai înconjura
+între paranteze. De exemplu compunerea a două funct ii va fi . f g în loc
+de f . g sau (.) f g
+
+
+3- 
+    letrec fct = \n -> if (isZero n) 1 (* n (fct (n - 1))) in fct 4
+    result is : 24
+
+
+4-  
+    squareSum :: Natural -> Natural -> Natural
+let squareSum = \x -> \y -> + (* x x) (* y y)  in squareSum 2 3
+
+5-
+    revRange :: Natural -> [Natural]
+    letrec revRange = \n -> if(isZero n) [0] (: n ( revRange(pred n))) in revRange 5
+
+    IMPORTANT: This does not work with the double parnthersis on the recursive call above here
+
+
+6-
+    let justList = \xs -> map (\x -> (x) ) (filter (\item -> isJust (item)) xs) in justList [Just 4, Nothing, Just←
+           >  5, Just 7, Nothing]
+    result [4, 5, 7]
+
+ 
+
+ 
