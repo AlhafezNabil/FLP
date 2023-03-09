@@ -76,3 +76,100 @@ ce face parserul?
 
 - se produce un efect lateral, si anume identificarea tokenului valid
 
+- Comportamentul Monadic imi permite sa procesez determinsit inputul , 
+dar sa propag si efecte laterale - tokenii obtinuti in urma evaluarii.
+
+Pentru a contrui o Monada, am nevoie de gunctor si applicative.
+
+Functor :         f -> [c] v -> [c] f v
+Applicative:  [c] f -> [c] v -> [c] f v
+
+-- imi permite secvetierea actiunilor pentru care alegerea unei actiuni 
+-- viitoare depinde de rezultatul actiunii curente 
+instance Monad Parser where
+pa >>= k = Parser (\input -> [(b, restb) | 
+    (a, resta) <- apply pa input,
+    (b, restb) <- apply (k a) resta])
+
+Monadele permit scrierea in do-notation
+
+Daca vrem sa definim un Parser care sa identifice cifrele scrise intre paranteze 
+"(5)" -> 5
+
+char :: Char -> Parser Char 
+char c = satisfy (\x -> x == c)
+
+digit :: Parser Char 
+digit = satisfy  isDigit
+ 
+cifParanteze :: Parser Int 
+cifParanteze = do 
+    char '('
+    d <- digit 
+    char ')'
+    return (digitinToInt d)
+
+> apply cifParanteze "(5)"
+
+
+-- Ex
+-- sa se scrie un parser care sa identifice o cifra predata de un semn (+ sau -)
+
+din "+6" sa recunoasca  6
+din "-6" sa recunoasca -6
+
+
+cifsemn :: Parser 
+cifSemn = do
+    ch <- satisfy (\x -> elem x "+-")
+    d <- digitToInt <$> digit
+    case ch of 
+        '+' -> return  d
+        _ -> return (-d)
+
+> apply cifSemn "-6"
+[(-6, "")]
+
+
+-- Exercituiul 2
+-- Implementati aceeasi functie, dar folosind doar Applicative - doar pure 
+si <*>, FARA monade 
+cifSemn' :: ParserInt
+cifSemn' ::     
+        pure convert <*> 
+        satisfy(\x -> elem x "+-") <*>
+        (digitToInt <$> digit)
+    where 
+        convert '+' d =  d
+        convert '-' d = -d
+
+convert '+' 2 = 2
+:t covert :: Char -> Int -> Int
+:t pure covert :: Parser (Char -> Int -> Int)
+
+pure convert                        <*> satisfy (\x -> elem x "+-")
+Parser (Char -> Int -> Int)         <*> Parser Char
+------------------------------------------------
+Parser (Int -> Int)                 <*> satisfy (digitToInt )
+
+
+fmap :: (Char -> Int) -> Parser Char -> Parser Int
+
+-- Ex 3
+Sa se scrie un parser pentru String,
+string :: String -> Parser String
+care sa parseze in functie de un keyword specificat.
+
+de exemplu:
+
+> apply (string "Hi") "Hike"
+[("Hi", "ke")]
+
+> apply (string "Mai") "Maybe"
+[]
+
+> apply (string "Re") "Restanta"
+[("Re", "stanta")]
+
+> apply (string "Ma") "Marire"
+[("Ma", "rire")]
