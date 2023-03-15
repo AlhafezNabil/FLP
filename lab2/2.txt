@@ -22,12 +22,12 @@ Explination:
     The case expression is used to handle two cases: if the digit string is empty (i.e., there are no digits in the input), the parser returns Nothing, indicating that the input could not be parsed. Otherwise, the parsed integer and the remaining unparsed input are returned as a Just tuple.
 
 
+/// Labul incepe de aici
 
 
 Parser a - un tip de date in Haskell pentru a putea implementa parsere pentru obiecte de timpul a 
 
-
-newType Parser a = Parser { apply :: String -> [(a, string)]}
+newtype Parser a = Parser { apply :: String -> [(a, String)] }
 
 > :t apply 
 apply:: Parser a -> String -> [(a, String)]
@@ -35,113 +35,122 @@ apply:: Parser a -> String -> [(a, String)]
 
 am facut cateva exemple simple si frumoase pentru Parse cChar 
 
-staisfy :: (Char -> Bool ) -> Parser Char 
+satisfy :: (Char -> Bool) -> Parser Char 
 
--- acel parse construit pentru a accepta drept token valid orice caracter 
-anChar :: Parser CharanCHar = satisfgy (\_ -> True)
+-- acel parser construit pt a accepta drept token valid orice caracter 
+anychar :: Parser Char
+anychar = satisfy (\_ -> True)
 
-digit :: Parser CHar 
+
+digit :: Parser Char
 digit = satisfy isDigit
 
 > apply digit "123"
-[("1", "23")]
+[('2',"23")] 
 
 > apply digit "23"
-[("23", "3")]
+[('2',"3")] 
 
 > apply digit "3"
-[("3", "")]
+[('3',"")] 
 
 > apply digit ""
 []
 
-"123" -> [("1", "23")] -> [("23", "3")] -> [("3", "")] -> []
-            ^                ^                ^
-            token valid     token valie     token valid
+
+"123" -> [('2',"23")]  -> [('2',"3")] -> [('3',"")] -> []
+		    ^ 		         ^              ^
+	    token valid     token valid     token valid
+
 
 > apply digit "1ab"
-[("1", "ab")]
+[('1',"ab")] 
 
 > apply digit "ab"
-[]
+[] 
+
 
 ce face parserul?
-- consuma sirul de intare - determinist
-    - il parcuge recursiv pana la elemenut l de baza - ""
-        in cazul in care toate caracterele pot fi parsate 
-    - ori il parcurge pana lap rimul caracter care nu poate fil parsat 
+- consuma sirul de intrare -- determinist
+	- il parcurge recursiv pana la elementul de baza - ""
+	  in cazul in care toate caracterele pot fi parsate 
+	- ori il parcurge pana la primul caracter care nu poate fi parsat
+
 - caracterul pur functional al parserului consta in procesarea sirului de intrare
 "123" -> "23" -> "3" -> "" -> stop
-"lab" -> "ab" -> stop
+"1ab" -> "ab" -> stop
 
-- se produce un efect lateral, si anume identificarea tokenului valid
 
-- Comportamentul Monadic imi permite sa procesez determinsit inputul , 
-dar sa propag si efecte laterale - tokenii obtinuti in urma evaluarii.
 
-Pentru a contrui o Monada, am nevoie de gunctor si applicative.
+- se produce un efect lateral , si anume identificarea tokenului valid
 
-Functor :         f -> [c] v -> [c] f v
-Applicative:  [c] f -> [c] v -> [c] f v
 
--- imi permite secvetierea actiunilor pentru care alegerea unei actiuni 
--- viitoare depinde de rezultatul actiunii curente 
+- Comportamentul Monadic imi permite sa procesez determinist inputul, 
+dar sa propag si efecte laterale - tokenii obtinuti in urma evaluarii
+
+Pentru a construi o Monada, am nevoie de un Functor si Applicative.
+
+functor:   		    f -> [C] v -> [C] f v
+applicative:	[C] f -> [C] v -> [C] f v
+
+-- imi permite secventierea actiunilor pentru care alegerea unei actiuni viitoare depinde de rezultatul actiunii curente
 instance Monad Parser where
-pa >>= k = Parser (\input -> [(b, restb) | 
-    (a, resta) <- apply pa input,
-    (b, restb) <- apply (k a) resta])
+    pa >>= k = Parser (\input -> [(b, restb) | 
+	 (a, resta) <- apply pa input, 
+	 (b, restb) <- apply (k a) resta])
 
 Monadele permit scrierea in do-notation
 
-Daca vrem sa definim un Parser care sa identifice cifrele scrise intre paranteze 
+Daca vrem sa definim un Parser care sa identifice cifrele scrise intre paranteze
 "(5)" -> 5
 
-char :: Char -> Parser Char 
-char c = satisfy (\x -> x == c)
+char :: Char -> Parser Char
+char x = satisfy (\c -> c== x)
 
-digit :: Parser Char 
-digit = satisfy  isDigit
- 
-cifParanteze :: Parser Int 
-cifParanteze = do 
-    char '('
-    d <- digit 
-    char ')'
-    return (digitinToInt d)
+digit :: Parser Char
+digit = satisfy isDigit 
+
+cifParanteze :: Parser Int
+cifParanteze = do
+	char '('
+	d <- digit
+	char ')'
+	return (digitToInt d)
+
 
 > apply cifParanteze "(5)"
 
 
--- Ex
--- sa se scrie un parser care sa identifice o cifra predata de un semn (+ sau -)
 
-din "+6" sa recunoasca  6
+-- exercitiu 1
+-- sa se scrie un parser care sa identifice o cifra precedata de un semn (+ sau -)
+
+din "+6" sa recunoasca +6
 din "-6" sa recunoasca -6
 
-
-cifsemn :: Parser 
-cifSemn = do
-    ch <- satisfy (\x -> elem x "+-")
-    d <- digitToInt <$> digit
-    case ch of 
-        '+' -> return  d
-        _ -> return (-d)
+cifraSemn :: Parser Int
+cifraSemn = do
+  ch <- satisfy (\x -> elem x "+-")
+  d <- digitToInt <$> digit
+  case ch of
+    '+' -> return d
+    '-' -> return (-d) 
 
 > apply cifSemn "-6"
 [(-6, "")]
 
+-- exercitiu 2
+-- implementati aceeasi frunctie, dar folosind doar Applicative - doar pure si <*>, FARA monade
 
--- Exercituiul 2
--- Implementati aceeasi functie, dar folosind doar Applicative - doar pure 
-si <*>, FARA monade 
-cifSemn' :: ParserInt
-cifSemn' ::     
-        pure convert <*> 
-        satisfy(\x -> elem x "+-") <*>
-        (digitToInt <$> digit)
-    where 
-        convert '+' d =  d
-        convert '-' d = -d
+cifSemn' :: Parser Int
+cifSemn' = 
+    pure convert <*> satisfy (\x -> elem x "+-") <*> (digitToInt <$> digit)
+                    ------- Parser Char ------       ------- Parser Int ------
+  where 
+    convert '+' d = d
+    convert '-' d = -d
+
+
 
 convert '+' 2 = 2
 :t covert :: Char -> Int -> Int
@@ -154,6 +163,8 @@ Parser (Int -> Int)                 <*> satisfy (digitToInt )
 
 
 fmap :: (Char -> Int) -> Parser Char -> Parser Int
+
+
 
 -- Ex 3
 Sa se scrie un parser pentru String,
@@ -174,9 +185,10 @@ de exemplu:
 > apply (string "Ma") "Marire"
 [("Ma", "rire")]
 
+
 string :: String -> Parser String
 string [] = return []
-string (x:xs) =
+string (x:xs) = go
     char x 
     string xs 
     return (x:xs)
