@@ -1,0 +1,175 @@
+Recapitulare:
+- Parser a - un tip de date in Haskell pt a putea implementa parsere pt obiecte de tipul a
+
+newtype Parser a = Parser { apply :: String -> [(a, String)]}
+
+> :t apply
+apply :: Parser a -> String -> [(a, String)]
+
+am facut cateva ex simple si frumoase pt Parser Char
+
+
+satisfy :: (Char -> Bool) -> Parser Char
+
+
+-- acel parser construit pt a accepta drept token valid orice caracter 
+anychar :: Parser Char
+anychar = satisfy (\_ -> True)
+
+
+digit :: Parser Char
+digit = satisfy isDigit
+
+> apply digit "123"
+[('2',"23")] 
+
+> apply digit "23"
+[('2',"3")] 
+
+> apply digit "3"
+[('3',"")] 
+
+> apply digit ""
+[]
+
+
+"123" -> [('2',"23")]  -> [('2',"3")] -> [('3',"")] -> []
+		^ 		     ^              ^
+	  token valid     token valid     token valid
+
+
+> apply digit "1ab"
+[('1',"ab")] 
+
+> apply digit "ab"
+[] 
+
+
+
+Ce face parserul?
+- consuma sirul de intrare -- determinist
+	- il parcurge recursiv pana la elementul de baza - ""
+	  in cazul in care toate caracterele pot fi parsate 
+	- ori il parcurge pana la primul caracter care nu poate fi parsat
+
+- caracterul pur functional al parserului consta in procesarea sirului de intrare
+"123" -> "23" -> "3" -> "" -> stop
+"1ab" -> "ab" -> stop
+
+- se produce un efect lateral , si anume identificarea tokenului valid
+
+
+Comportamentul Monadic imi permite sa procesez determinist inputul, dar sa propag si efecte laterale - tokenii obtinuti in urma evaluarii
+
+Pentru a construi o Monada, am nevoie de un Functor si Applicative.
+
+functor:   		    f -> [C] v -> [C] f v
+applicative:	[C] f -> [C] v -> [C] f v
+ 
+
+-- imi permite secventierea actiunilor pentru care alegerea unei actiuni viitoare depinde de rezultatul actiunii curente
+instance Monad Parser where
+    pa >>= k = Parser (\input -> [(b, restb) | 
+	 (a, resta) <- apply pa input, 
+	 (b, restb) <- apply (k a) resta])
+
+
+
+Monadele permit scrierea in do-notation
+
+Daca vrem sa definim un Parser care sa identifice cifrele scrise intre paranteze
+"(5)" -> 5
+
+char :: Char -> Parser Char
+char x = satisfy (\c -> c== x)
+
+digit :: Parser Char
+digit = satisfy isDigit 
+
+cifParanteze :: Parser Int
+cifParanteze = do
+	char '('
+	d <- digit
+	char ')'
+	return (digitToInt d)
+
+
+-- exercitiu 1
+-- sa se scrie un parser care sa identifice o cifra precedata de un semn
+
+din "+6" sa recunoasca +6
+din "-6" sa recunoasca -6
+
+cifraSemn :: Parser Int
+cifraSemn = do
+  ch <- satisfy (\x -> elem x "+-")
+  d <- digitToInt <$> digit
+  case ch of
+    '+' -> return d
+    '-' -> return (-d) 
+
+
+
+-- exercitiu 2
+-- implementati aceeasi frunctie, dar folosind doar Applicative - doar pure si <*>, FARA monade
+
+cifSemn' :: Parser Int
+cifSemn' = 
+    pure convert <*> satisfy (\x -> elem x "+-") <*> (digitToInt <$> digit)
+                    ------- Parser Char ------       ------- Parser Int ------
+  where 
+    convert '+' d = d
+    convert '-' d = -d
+
+
+
+-- exercitiu 3
+-- sa se scrie un parser pt String, care sa parseze in functie de un keyword specificat 
+ 
+string :: String -> Parser String
+string [] = return []
+string (x:xs) = go 
+  char x
+  string xs
+  return (x:xs)
+
+-- sau
+-- mai pot scrie cazul general 
+
+string (x:xs) = pure (:) <*> char x <*> string xs
+
+
+
+> apply (string "Hi") "Hike"
+[("Hi", "ke")]
+
+> apply (string "Mai") "Maybe"
+[]
+
+
+
+
+--- TEMA
+
+-- restul ex din document
+-- trimiteti pe bogdan.macovei.fmi@gmail.com
+-- pana la laboratorul urmator
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
