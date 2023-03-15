@@ -173,3 +173,17 @@ de exemplu:
 
 > apply (string "Ma") "Marire"
 [("Ma", "rire")]
+
+string :: String -> Parser String
+string [] = return []
+string (x:xs) =
+    char x 
+    string xs 
+    return (x:xs)
+--- sau 
+--- mai po scrie cazul general 
+string (x:xs) = pure (:) <*> char x <*> string xs 
+
+- Tema de la Parsarea mai multor alternative  pana la sfarsit 
+- pana la lab urmator
+- trimitere spre bogdan.macovei.fmi@gmail.com

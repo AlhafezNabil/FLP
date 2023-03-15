@@ -19,6 +19,7 @@
 --         '+' -> return  d
 --         '-' -> return (-d)
 
+newType Parser a = Parser { apply :: string -> [(a,string)]}
 
 instance Applicative Parser where
  pure a = Parser (\input -> [(a, input)])
