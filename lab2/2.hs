@@ -39,3 +39,19 @@ digit = satisfy isDigit
 -- din Data.Char )
 space :: Parser Char
 space = undefined
+
+
+--- | succes doar dacă am șirul de intrare este vid
+endOfInput :: Parser () 
+endOfInput  = Parser go  
+  where 
+    go "" = [((), "")]    
+    go _ = []
+
+-- instance Functor Parser where fmap f pa = Parser (\input -> [(f a, rest) | (a, rest) <- apply pa input])
+-- instance Applicative Parser where pure a = Parser (\input -> [(a, input)])    
+-- pf <*> pa = Parser (\input -> [(f a, resta) | (f, restf) <- apply pf input, (a, resta) <- apply pa restf])
+
+-- parseCifra = digitToInt <$> digit
+-- digitToInt :: Char -> Int
+--  apply (digitToInt <$> digit) "7ab"
