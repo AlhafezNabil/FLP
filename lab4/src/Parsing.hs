@@ -2,9 +2,13 @@
 module Parsing where
 
 import Exp
-import Lab2
+
+import RezLab2
+
+
 import Control.Applicative (some, many, (<|>))
 import Data.Char (isAlpha, isAlphaNum)
+import Data.String (String)
 
 parseFirst :: Parser a -> String -> Maybe a
 parseFirst p s
@@ -12,13 +16,35 @@ parseFirst p s
       [] -> Nothing
       (a,_):_ -> Just a
 
+haskellId :: Parser STring
+haskellId = identifier (satisfy isAlpha)(satisfy isAlphaNum)
+
+-- identifier se asigura ca primul caracter satisface isAlpha
+-- iar restul caracterelor din sir satisface isAlphaNum
+-- este definit in lab2.hs si a fost tema pentru azi
+
+-- accept ca perator orice sir format din ~i@#%^&:?|>?+=-_
+haskellOp :: Parser String
+haskellOp = identifier isOp isOp
+  where 
+      isOp = satisfy (\x -> elem x "~i@#%^&:?|>?+=-_")
+
+    
+
+
+
 var :: Parser Var
-var = undefined
+var = do
+    haskellIdVar <- hask
 -- >>> parseFirst var "b is a var"
 -- Just (Var {getVar = "b"})
 
 varExp :: Parser ComplexExp
-varExp = undefined
+varExp = do
+  symbol "\\"
+  x <- var 
+  symbol "->"
+  exp <- ""
 -- >>> parseFirst varExp "b is a var"
 -- Just (CX (Var {getVar = "b"}))
 
@@ -67,3 +93,9 @@ exprParser = whiteSpace *> expr <* endOfInput
 -- >>> parseFirst exprParser "let x := 28 in \\y -> + x y"
 -- Just (Let (Var {getVar = "x"}) (Nat 28) (CLam (Var {getVar = "y"}) (CApp (CApp (CX (Var {getVar = "+"})) (CX (Var {getVar = "x"}))) (CX (Var {getVar = "y"})))))
 
+
+-- continuat cu restul expresiilor de la lambdaExp pana la sfarsit
+-- pentru list, folosit parser-ul din laboratorul 2
+-- aveti brackets -> verfica sa aveti [, ] si un parser intre ele
+-- parserul dintre paranteze trebuie sa fie un parser peste "," - commaSep,
+-- deja definit

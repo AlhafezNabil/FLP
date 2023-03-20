@@ -1,4 +1,4 @@
-module Lab2 where
+module RezLab2 where
 
 import Control.Applicative ( Alternative(..) )
 import Data.Char ( digitToInt, isDigit, isSpace )

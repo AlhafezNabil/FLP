@@ -1,8 +1,8 @@
 
 module REPLCommand where
 
-import Lab2
 import Control.Applicative (many, (<|>))
+import RezLab2
 
 data REPLCommand
   = Quit

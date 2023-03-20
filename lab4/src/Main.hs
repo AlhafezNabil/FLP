@@ -3,11 +3,10 @@ module Main where
 
 import System.IO
 
-import Lab2
+-- import C:\Univeristetea\FLP\lab4\Parsing.hs
+-- ghc --make Lab2.hs
 import Exp
-import Parsing
-import Printing
-import REPLCommand
+import RezLab2
 
 main :: IO ()
 main = undefined

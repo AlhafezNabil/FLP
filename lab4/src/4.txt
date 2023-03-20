@@ -1,201 +1,62 @@
-A parser in Haskell is a function that takes an input stream of characters (usually represented as a string) and returns a parsed value, along with the remaining unparsed input. Parsers are commonly used in programming languages and other systems to extract structured data from unstructured input.
+REPL 
+RPL -> read, 
 
-Here's an example of a simple parser in Haskell that parses an integer from a string:
+READ  <- citim sirul de caractere pe care vrem sa il interpretam ca o comanda 
+Print <- reprezentam sireul de caractere intr-o structura interna (Parser) sa
+afisam rezultatul la STDOUT
 
-    import Data.Char (isDigit)
+miniHaskell> :q
 
-    type Parser a = String -> Maybe (a, String)
+sau 
 
-    parseInt :: Parser Int
-    parseInt = \input -> case span isDigit input of
-    ("", _)  -> Nothing
-    (digits, rest) -> Just (read digits, rest)
+miniHaskell> :quit
 
-calling parseResult = parseInt "123hello"
+miniHaskell> :l file.hs
+Not implemented 
 
-Explination:
+Pentru a implementa acest  intereretor, avem urmatoarele fisiere:
+Exp.hs -> definsete doua tipuri de date
+  Var -> pentru  variabile 
+  newtype Var = Var { getVar :: String}
 
-    In this example, we define a type alias Parser that represents a function that takes a string input and returns a Maybe tuple containing the parsed value and the remaining unparsed input. The parseInt function is a parser that parses an integer from the input string.
+  si complexExp care definsete care sunt expresiile pe care le putem rerpezenta 
+  avem reprezentare pentru 
+  - variabile 
+  - numere naturale
+  - lamda-functii
+  - aplicari de functii
+  - let 
+  - letrec
+  - liste
 
-    The span function is used to extract a prefix of the input string consisting of digits. The isDigit function is used as the predicate to determine if a character is a digit or not. The read function is used to convert the digit string into an integer.
+  lab2.hs <- rezovarile din lab2
+  Main.hs <- trebuie sa permita urmatoarele:
+    - afiseaza linia de comanda
+      miniHaskell>
+    - citesete comanda
+    - parseaza comanda
+    - daca era quit ->  iese din linia de comanda 
+    - daca era load -> afiseaza ca nu eimplementata
+    - altefel -> incearca sa parseze expresia citia
+    - daca nu s-a putut parsa -> eroare de Parsarea
+    - altfel, se afiseaza reprezentarea interna a expresiei
 
-    The case expression is used to handle two cases: if the digit string is empty (i.e., there are no digits in the input), the parser returns Nothing, indicating that the input could not be parsed. Otherwise, the parsed integer and the remaining unparsed input are returned as a Just tuple.
+parsing.hs <- definim cum
 
 
 
+Parserul pentru comenzile de intrare
 
-Parser a - un tip de date in Haskell pentru a putea implementa parsere pentru obiecte de timpul a 
 
+module REPLCommand where
 
-newtype Parser a = Parser { apply :: String -> [(a, String)] }
+import Lab2
+import Control.Applicative (many, (<|>))
 
-> :t apply 
-apply:: Parser a -> String -> [(a, String)]
+data REPLCommand
+  = Quit
+  | Load String
+  | Eval String
 
-
-am facut cateva exemple simple si frumoase pentru Parse cChar 
-
-satisfy :: (Char -> Bool) -> Parser Char 
-
--- acel parser construit pt a accepta drept token valid orice caracter 
-anychar :: Parser Char
-anychar = satisfy (\_ -> True)
-
-
-digit :: Parser Char
-digit = satisfy isDigit
-
-> apply digit "123"
-[('2',"23")] 
-
-> apply digit "23"
-[('2',"3")] 
-
-> apply digit "3"
-[('3',"")] 
-
-> apply digit ""
-[]
-
-
-"123" -> [('2',"23")]  -> [('2',"3")] -> [('3',"")] -> []
-		    ^ 		         ^              ^
-	    token valid     token valid     token valid
-
-
-> apply digit "1ab"
-[('1',"ab")] 
-
-> apply digit "ab"
-[] 
-
-
-ce face parserul?
-- consuma sirul de intrare -- determinist
-	- il parcurge recursiv pana la elementul de baza - ""
-	  in cazul in care toate caracterele pot fi parsate 
-	- ori il parcurge pana la primul caracter care nu poate fi parsat
-
-- caracterul pur functional al parserului consta in procesarea sirului de intrare
-"123" -> "23" -> "3" -> "" -> stop
-"1ab" -> "ab" -> stop
-
-
-
-- se produce un efect lateral , si anume identificarea tokenului valid
-
-
-- Comportamentul Monadic imi permite sa procesez determinist inputul, 
-dar sa propag si efecte laterale - tokenii obtinuti in urma evaluarii
-
-Pentru a construi o Monada, am nevoie de un Functor si Applicative.
-
-functor:   		    f -> [C] v -> [C] f v
-applicative:	[C] f -> [C] v -> [C] f v
-
--- imi permite secventierea actiunilor pentru care alegerea unei actiuni viitoare depinde de rezultatul actiunii curente
-instance Monad Parser where
-    pa >>= k = Parser (\input -> [(b, restb) | 
-	 (a, resta) <- apply pa input, 
-	 (b, restb) <- apply (k a) resta])
-
-Monadele permit scrierea in do-notation
-
-Daca vrem sa definim un Parser care sa identifice cifrele scrise intre paranteze
-"(5)" -> 5
-
-char :: Char -> Parser Char
-char x = satisfy (\c -> c== x)
-
-digit :: Parser Char
-digit = satisfy isDigit 
-
-cifParanteze :: Parser Int
-cifParanteze = do
-	char '('
-	d <- digit
-	char ')'
-	return (digitToInt d)
-
-
-> apply cifParanteze "(5)"
-
-
-
--- exercitiu 1
--- sa se scrie un parser care sa identifice o cifra precedata de un semn (+ sau -)
-
-din "+6" sa recunoasca +6
-din "-6" sa recunoasca -6
-
-cifraSemn :: Parser Int
-cifraSemn = do
-  ch <- satisfy (\x -> elem x "+-")
-  d <- digitToInt <$> digit
-  case ch of
-    '+' -> return d
-    '-' -> return (-d) 
-
-> apply cifSemn "-6"
-[(-6, "")]
-
--- exercitiu 2
--- implementati aceeasi frunctie, dar folosind doar Applicative - doar pure si <*>, FARA monade
-
-cifSemn' :: Parser Int
-cifSemn' = 
-    pure convert <*> satisfy (\x -> elem x "+-") <*> (digitToInt <$> digit)
-                    ------- Parser Char ------       ------- Parser Int ------
-  where 
-    convert '+' d = d
-    convert '-' d = -d
-
-
-
-convert '+' 2 = 2
-:t covert :: Char -> Int -> Int
-:t pure covert :: Parser (Char -> Int -> Int)
-
-pure convert                        <*> satisfy (\x -> elem x "+-")
-Parser (Char -> Int -> Int)         <*> Parser Char
-------------------------------------------------
-Parser (Int -> Int)                 <*> satisfy (digitToInt )
-
-
-fmap :: (Char -> Int) -> Parser Char -> Parser Int
-
-
-
--- Ex 3
-Sa se scrie un parser pentru String,
-string :: String -> Parser String
-care sa parseze in functie de un keyword specificat.
-
-de exemplu:
-
-> apply (string "Hi") "Hike"
-[("Hi", "ke")]
-
-> apply (string "Mai") "Maybe"
-[]
-
-> apply (string "Re") "Restanta"
-[("Re", "stanta")]
-
-> apply (string "Ma") "Marire"
-[("Ma", "rire")]
-
-
-string :: String -> Parser String
-string [] = return []
-string (x:xs) = go
-    char x 
-    string xs 
-    return (x:xs)
---- sau 
---- mai po scrie cazul general 
-string (x:xs) = pure (:) <*> char x <*> string xs 
-
-- Tema de la Parsarea mai multor alternative  pana la sfarsit 
-- pana la lab urmator
-- trimitere spre bogdan.macovei.fmi@gmail.com
+replCommand :: Parser REPLCommand
+replCommand = undefined
