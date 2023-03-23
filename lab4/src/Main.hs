@@ -8,7 +8,8 @@ import System.IO
 import Exp
  
 import REPLCommand ( REPLCommand(Eval, Quit, Load), replCommand )
-import Parsing
+import Parsing ( parseFirst, exprParser )
+import Printing (showExp)
 
 
 main :: IO()

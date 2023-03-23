@@ -1,14 +1,30 @@
+-- Alhafez Nabil
+-- Grupa 243
+
+
 
 module Parsing where
 
 import Exp
 
 import RezLab2
+    ( char,
+      commaSep,
+      endOfInput,
+      identifier,
+      lexeme,
+      natural,
+      satisfy,
+      string,
+      symbol,
+      whiteSpace,
+      Parser(apply) )
 
 
 import Control.Applicative (some, many, (<|>))
 import Data.Char (isAlpha, isAlphaNum)
 import Data.String (String)
+import Distribution.Compat.Parsing
 
 parseFirst :: Parser a -> String -> Maybe a
 parseFirst p s
@@ -30,13 +46,11 @@ haskellOp = identifier isOp isOp
       isOp = satisfy (\x -> elem x "~i@#%^&:?|>?+=-_")
 
     
-
-
-
 var :: Parser Var
 var = do
   haskellIdVar <- haskellId
   return $ Var haskellIdVar
+
 -- >>> parseFirst var "b is a var"
 -- Just (Var {getVar = "b"})
 
@@ -56,39 +70,93 @@ lambdaExp = do
 -- Just (CLam (Var {getVar = "x"}) (CX (Var {getVar = "x"})))
 
 letExp :: Parser ComplexExp
-letExp = undefined
+letExp = do
+  lexeme $ string "let"           
+  varName <- var                  
+  lexeme $ string ":="           
+  expr1 <- complexExp             
+  lexeme $ string "in"            
+  expr2 <- complexExp             
+  return $ Let varName expr1 expr2  
+  
+-- The complexExp parser should be defined to parse ComplexExp
+complexExp :: Parser ComplexExp
+complexExp = choice
+  [ cx
+  , nat
+  , cLam
+  , cApp
+  , letExp
+  , letRec
+  , listExp
+  ] where
+    cx = CX <$> var
+    nat = Nat <$> lexeme natural
+    cLam = do
+      lexeme $ char '\\'
+      v <- var
+      lexeme $ string "->"
+      e <- complexExp
+      return $ CLam v e
+    cApp = between (lexeme $ char '(') (lexeme $ char ')') $
+      CApp <$> complexExp <*> complexExp
+    letRec = undefined   
+    listExp = List <$> between (lexeme $ char '[') (lexeme $ char ']') (complexExp `sepBy` lexeme (char ','))
+
 -- >>> parseFirst letExp "let x := y in z"
 -- Just (Let (Var {getVar = "x"}) (CX (Var {getVar = "y"})) (CX (Var {getVar = "z"})))
 
 letrecExp :: Parser ComplexExp
-letrecExp = undefined
+letrecExp = do
+  lexeme $ string "letrec"     
+  varName <- var                 
+  lexeme $ string ":="         
+  expr1 <- complexExp           
+  lexeme $ string "in"          
+  expr2 <- complexExp            
+  return $ LetRec varName expr1 expr2  
 -- >>> parseFirst letrecExp "letrec x := y in z"
 -- Just (LetRec (Var {getVar = "x"}) (CX (Var {getVar = "y"})) (CX (Var {getVar = "z"})))
 
+
 listExp :: Parser ComplexExp
-listExp = undefined
+listExp = do
+  lexeme $ char '['              
+  elems <- commaSep complexExp   
+  lexeme $ char ']'              
+  return $ List elems           
 -- >>> parseFirst listExp "[a,b,c]"
 -- Just (List [CX (Var {getVar = "a"}),CX (Var {getVar = "b"}),CX (Var {getVar = "c"})])
 
 natExp :: Parser ComplexExp
-natExp = undefined
+natExp = do
+  n <- natural              
+  return $ Nat (fromIntegral n)  
 -- >>> parseFirst natExp "223 a"
 -- Just (Nat 223)
 
 parenExp :: Parser ComplexExp
-parenExp = undefined
+parenExp = do
+  lexeme $ char '('          
+  e <- complexExp             
+  lexeme $ char ')'            
+  return e      
+
 -- >>> parseFirst parenExp "(a)"
 -- Just (CX (Var {getVar = "a"}))
 
 basicExp :: Parser ComplexExp
-basicExp = undefined
+basicExp = complexExp
 -- >>> parseFirst basicExp "[a,b,c]"
 -- Just (List [CX (Var {getVar = "a"}),CX (Var {getVar = "b"}),CX (Var {getVar = "c"})])
 
 expr :: Parser ComplexExp
-expr = varExp
+expr = chainl1 basicExp (pure CApp)
+
+-- https://lorgonblog.wordpress.com/2007/12/04/monadic-parser-combinators-part-three/
 -- >>> parseFirst expr "\\x -> x y z t"
 -- Just (CLam (Var {getVar = "x"}) (CApp (CApp (CApp (CX (Var {getVar = "x"})) (CX (Var {getVar = "y"}))) (CX (Var {getVar = "z"}))) (CX (Var {getVar = "t"}))))
+
 
 exprParser :: Parser ComplexExp
 exprParser = whiteSpace *> expr <* endOfInput

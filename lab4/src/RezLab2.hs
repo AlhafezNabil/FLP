@@ -90,6 +90,7 @@ naiveNatural = string2Int <$> naiveNat
 
 -- | Elimină zero sau mai multe apariții ale lui `space`
 whiteSpace :: Parser ()
+-- The *> operator is used to sequence two parsers. It runs the first parser, discards its result, then runs the second parser and returns its result. In this case, many space is followed by return (), which simply returns the unit value () as the result of the whiteSpace parser. In other words, the whiteSpace parser matches and discards any whitespace characters in the input string.
 whiteSpace = many space *> return ()
 
 -- | parses a natural number (one or more digits)
@@ -99,6 +100,7 @@ nat = string2Int <$> some digit
 -- | aplică un parser, și elimină spațiile de după
 lexeme :: Parser a -> Parser a
 lexeme p = p <* whiteSpace
+-- The lexeme function is a higher-order function that takes a parser p as input and returns a new parser that applies p and then eliminates any trailing whitespace characters. The <* operator is used to sequence two parsers. It runs the first parser, keeps its result, then runs the second parser and discards its result. Finally, it returns the result of the first parser. In this case, p <* whiteSpace applies the parser p, discards any trailing whitespace, and returns the result of p.
 
 -- | parses a natural number and skips the space after it
 natural :: Parser Int
@@ -150,6 +152,7 @@ ident identStart identLetter
     s <- identStart
     ls <- many identLetter
     return (s:ls)
+
 
 -- | ca mai sus, dar elimină spatiile de după
 identifier :: Parser Char -> Parser Char -> Parser String
