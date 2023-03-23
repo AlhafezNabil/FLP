@@ -16,7 +16,7 @@ parseFirst p s
       [] -> Nothing
       (a,_):_ -> Just a
 
-haskellId :: Parser STring
+haskellId :: Parser String
 haskellId = identifier (satisfy isAlpha)(satisfy isAlphaNum)
 
 -- identifier se asigura ca primul caracter satisface isAlpha
@@ -35,21 +35,23 @@ haskellOp = identifier isOp isOp
 
 var :: Parser Var
 var = do
-    haskellIdVar <- hask
+  haskellIdVar <- haskellId
+  return $ Var haskellIdVar
 -- >>> parseFirst var "b is a var"
 -- Just (Var {getVar = "b"})
 
 varExp :: Parser ComplexExp
-varExp = do
-  symbol "\\"
-  x <- var 
-  symbol "->"
-  exp <- ""
+varExp = CX <$> var 
 -- >>> parseFirst varExp "b is a var"
 -- Just (CX (Var {getVar = "b"}))
 
 lambdaExp :: Parser ComplexExp
-lambdaExp = undefined
+lambdaExp = do
+  symbol "\\"
+  x <- var
+  symbol "->"
+  exp <- expr
+  return $ CLam x exp
 -- >>> parseFirst lambdaExp "\\x -> x"
 -- Just (CLam (Var {getVar = "x"}) (CX (Var {getVar = "x"})))
 
