@@ -1,0 +1,153 @@
+Evaluarea Expresiilor 
+
+
+module Exp where
+
+import Numeric.Natural
+
+newtype Var = Var { getVar :: String }
+  deriving (Show)
+
+data ComplexExp                         --  ComplexExp ::= "(" ComplexExp ")"
+  = CX Var                              --          |   Var
+  | Nat Natural                           --        |   Natural
+  | CLam Var ComplexExp                 --          |   "\" Var "->" ComplexExp
+  | CApp ComplexExp ComplexExp          --          |   ComplexExp ComplexExp
+  | Let Var ComplexExp ComplexExp       --          |   "let" Var ":=" ComplexExp "in"
+  | LetRec Var ComplexExp ComplexExp    --          |   "letrec" Var ":=" ComplexExp "in"
+  | List [ComplexExp]                   --          |   "[" {ComplexExp ","}* "]"
+  deriving (Show)
+
+let x = exp1 in exp2
+ex: let x = 2 in x + x
+(lambda x. exp2) exp1
+
+let x = 2 in x + x
+(lambda x. x + x) 2
+
+singurele operatii necesare pentru a reprezenta tot limbajul
+sunt operatiile din lambda-calcul.
+
+Cum este definit un lambda-termin?
+t ::= x | t t | lambda x. t
+
+Ce este ComplexExp pentru lambda-expresii? 
+Sugar syntax pentru lambda-calcul
+
+Pentur a evalua expresiile complexe (ComplexExp), este suficient sa le
+reduc la o lambda-expresie, si sa evaluez lamda-epersia.
+- am de evaluat doar 3 cazuri in loc de 7;
+- dintre cele 7, 4 ar fi fost oricum redundante.
+
+Introducem un tip de date Exp, pentru reprezentarea lambda-expresiilor.
+Vom introduce si un alt tip de date pentru variabile.
+
+newtype IndexedVar = IndexedVar { ivName :: String, ivCount :: Int}
+
+unicitatea unei variabile este asigurata de count daca vreau sa generz un nou "x",
+ma uit la toate aparitiile lui sistem, si la count-ul pe care il are fiecare aparitie
+si il generz cu acel count + 1 => max(count) + 1
+
+data Exp = 
+  | x IndexedVar
+  | App Exp Exp
+  | Lam IndexedVar Exp
+
+cele doua tipuri, ComplexExp si Exp sunt echivalente, putem defini urmatoarele doua functii:
+
+deSugar :: ComplexExp -> Exp
+sugar :: Exp - > ComplexExp
+
+
+Evaluarea lambda-expresiilor:
+pentru a evalua lamda-expresiile, avem nevoie sa  implementam notiunea de substitutie, 
+si pentru substitutie am nevoie de functii auxiliare.
+
+vars :: Exp -> [IndexedVar]
+vars (X x) = {x}
+vars (App t1 t2) = vars t1 `union` vars t2
+vars (Lam x t) = [x] `union` vars t
+
+  t ::= x | t t | lambda x. t
+
+vars(x) = {x}
+vars(t1 t2) =  vars(t1) U vars(t2)
+vars(lambda x, t) = {x} U vars(t)
+
+
+-- implementati aceasta functie in Haskell
+-- pentru reuniune aveti union in Data.List
+
+Definim functia 
+freeVars :: Exp -> [IndexedVar]
+freeVars (X x) = [x]
+freeVars (App t1 t2) = freeVars t2 `union` freeVars t2
+freeVars (Lam x t) = delete x $ freeVars t
+
+x y z lambda x z  x y z
+
+FV(x) = {x}
+FV(t1 t2) = FV(t1) U FV(t2)
+FV(lambda x. t) = FV(t) - (x)
+
+occursFree :: IndexedVar -> Exp -> Bool
+occursFree x e = elem x $ freeVars e
+
+freshVar :: IndexedVar -> [IndexedVar] -> IndexedVar
+freshVar x xs = x {ivCount = m + 1}
+  where 
+    nxs = [ivCount y | y <= x: xs, ivName x = ivName y]
+    m = maximum nxs
+
+renameVar :: IndexedVar -> IndexedVar -> Exp Exp 
+renameVar  toReplace replacement = go
+  where 
+    go (X x) = if(x == toReplace ) 
+        then (X replacement)
+        else (X x)
+    go (App t1 t2)
+    go (App t1 t2) = App (go t1) (go t2)
+    go (Lam x e) = Lam (if x == toReplace then replacement else x) (go e)
+      | x == toReplace = Lam x t1
+      |
+
+
+x si vreau sa il inlocuies pe x cu u -> u
+x si vreau sa il inlocuesc pe y cu z -> x
+
+substitute :: IndexedVar -> Exp -> Exp -> Exp 
+substitute toReplace replacement = go
+  where 
+    go(X x) = if x == toReplace then replacement else (X x)
+    go(App t1 t2) = App (go t1) (go t2)
+    go(Lam x t) 
+      | x == toReplace = Lam x t
+      | occursFree x replacement = 
+        let f = freshVar x (vars t `union` vars replacement)
+          in Lam f (go (rename x f t))
+      | otherwise
+
+[x lambda r . ry / z] lambda x. zt =
+  daca aplic direct, obtin 
+    lambda x. (x lambda r . ry) t
+Ceea ce nu corespunde semantic cu expresia intiala
+
+
+[lambda x. x + 1 / z] z = lambda x. x + 1
+[lambda x. x + 1 / z] y = y
+
+[y / x] lambda x. x + 1 = lambda y. y + 1
+
+f(x) = x + 1
+inlocuieste x cu y
+f(y) = y + 1
+
+in general, cand vreau sa inlocuiesc variabila de legatura, nu fac nichi 
+alta modificare, pentru ca nu fac nicio modificare din punct de vedere semantic 
+
+
+pentru lab urmator:
+- deSugar :: ComplexExp -> Exp
+- sugar :: Exp -> ComplexExp <- simpla
+
+suportul: tinyurl.com/flp2023-materials
